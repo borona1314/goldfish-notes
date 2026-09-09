@@ -268,7 +268,7 @@
   <div class="modal">
     <button class="close-x" id="archiveClose">✕</button>
     <h2>คลังปลา</h2>
-    <p>เก็บอันที่ปลาทองกินไปแล้ว และอันที่ลบทิ้ง — กู้คืนได้ทุกเมื่อ</p>
+    <p>เก็บอันที่ปลาทองกินไปแล้ว และอันที่ลบทิ้ง — กู้คืนได้ภายใน 15 วัน หลังจากนั้นจะลบถาวรอัตโนมัติ</p>
     <div class="tab-row">
       <div class="tab active" id="tabDone">🍚 กินแล้ว</div>
       <div class="tab" id="tabTrash">🗑 ถังขยะ</div>
@@ -536,10 +536,14 @@
     });
   }
 
-  function purgeOldTrash(){
-    const cutoff = Date.now() - 30*24*60*60*1000;
+  function purgeOldItems(){
+    const cutoff = Date.now() - 15*24*60*60*1000;
     const before = notes.length;
-    notes = notes.filter(n=> !(n.deleted && n.deletedAt && n.deletedAt < cutoff));
+    notes = notes.filter(n=>{
+      if(n.deleted && n.deletedAt && n.deletedAt < cutoff) return false;
+      if(n.done && !n.deleted && n.updatedAt && n.updatedAt < cutoff) return false;
+      return true;
+    });
     if(notes.length !== before) saveLocal();
   }
 
@@ -762,7 +766,7 @@
     items.forEach(n=>{
       const row = document.createElement('div');
       row.className = 'archive-item';
-      const timeLabel = archiveTab==='done' ? timeAgo(n.updatedAt) : timeAgo(n.deletedAt) + ' (ลบถาวรอัตโนมัติใน 30 วัน)';
+      const timeLabel = archiveTab==='done' ? timeAgo(n.updatedAt) + ' (ลบถาวรอัตโนมัติใน 15 วัน)' : timeAgo(n.deletedAt) + ' (ลบถาวรอัตโนมัติใน 15 วัน)';
       row.innerHTML = `
         <div>
           <div class="archive-text"></div>
@@ -865,7 +869,7 @@
   }
 
   load();
-  purgeOldTrash();
+  purgeOldItems();
   render();
   renderFeedCounter();
   applySpecies(localStorage.getItem(SPECIES_KEY) || 'common', false);
