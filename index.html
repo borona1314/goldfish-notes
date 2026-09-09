@@ -527,7 +527,14 @@
   function load(){ try{ notes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){ notes = []; } }
   function saveLocal(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(notes)); }catch(e){} }
   function saveFeed(){ localStorage.setItem(FEED_KEY, String(feedCount)); }
-  function syncNote(n){ if(connected) fbRef.child(n.id).set(n); }
+  function syncNote(n){
+    if(!connected || !fbRef) return;
+    fbRef.child(n.id).set(n).catch(err=>{
+      alert('ซิงค์ไม่สำเร็จ: ' + err.message + '\n\nไปเช็ค Realtime Database → Rules ว่าเปิด .read/.write = true หรือยัง');
+      syncDot.className = 'dot off';
+      syncText.textContent = 'เขียนข้อมูลไม่ได้';
+    });
+  }
 
   function purgeOldTrash(){
     const cutoff = Date.now() - 30*24*60*60*1000;
@@ -640,7 +647,7 @@
   function purgeNote(id){
     notes = notes.filter(x=>x.id!==id);
     saveLocal(); renderArchive(); updateArchiveBadge();
-    if(connected) fbRef.child(id).remove();
+    if(connected && fbRef) fbRef.child(id).remove().catch(err=>alert('ลบไม่สำเร็จ: '+err.message));
   }
 
   function addNote(){
@@ -835,6 +842,7 @@
       }
       const cfg = JSON.parse(cfgRaw);
       if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      if(fbRef) fbRef.off();
       fbRef = firebase.database().ref('goldfish_notes');
 
       fbRef.on('value', (snap)=>{
