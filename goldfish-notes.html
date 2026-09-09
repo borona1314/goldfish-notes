@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>ปลาทอง</title>
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ปลาทอง">
+<meta name="theme-color" content="#1E6E86">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%231E6E86'/%3E%3Cg transform='translate(24,50)'%3E%3Cellipse cx='62' cy='42' rx='50' ry='34' fill='%23FF8A3D'/%3E%3Cpath d='M18 22 Q -14 42 18 62 Q 6 42 18 22Z' fill='%23E85A1E'/%3E%3Ccircle cx='92' cy='32' r='7' fill='%232B2B2B'/%3E%3Ccircle cx='94' cy='30' r='2.4' fill='white'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="manifest" href='data:application/json,{"name":"ปลาทอง","short_name":"ปลาทอง","display":"standalone","background_color":"%23BFE7F2","theme_color":"%231E6E86"}'>
+
+<style>
+  :root{
+    --water-top:#D7F2FA; --water-bottom:#7FCBE4;
+    --water-top-night:#123246; --water-bottom-night:#0B1E2E;
+    --deep:#1E6E86; --ink:#0F3B49;
+    --goldfish:#FF8A3D; --goldfish-dark:#E0561A;
+    --card:#FFFFFF; --card-border:#D9EEF4; --coral:#FF6F91;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; height:100%;}
+  body{
+    min-height:100vh; display:flex; flex-direction:column;
+    background:linear-gradient(180deg,var(--water-top) 0%, var(--water-bottom) 100%);
+    transition:background 1.2s ease;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink);
+    padding-top:calc(var(--safe-top) + 10px);
+    padding-bottom:calc(var(--safe-bottom) + 10px);
+    position:relative; overflow-x:hidden;
+  }
+  body.night{background:linear-gradient(180deg,var(--water-top-night) 0%, var(--water-bottom-night) 100%); color:#DCEEF4;}
+  body.night .capture, body.night .note, body.night .archive-item{background:#123047; border-color:#1E4A61;}
+  body.night h1, body.night .subtitle, body.night .pond-label, body.night .note-text, body.night .archive-text{color:#DCEEF4;}
+  body.night .note-time, body.night .archive-time{color:#6D96A5;}
+  body.night textarea{color:#DCEEF4;}
+  body.night textarea::placeholder{color:#5F8697;}
+
+  .star{position:fixed; border-radius:50%; background:#fff; opacity:0; pointer-events:none; z-index:0; animation:twinkle 3.2s ease-in-out infinite;}
+  @keyframes twinkle{0%,100%{opacity:0.15;}50%{opacity:0.85;}}
+
+  .bubble-field{position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:0;}
+  .bg-bubble{position:absolute; bottom:-40px; border-radius:50%; background:rgba(255,255,255,0.35); animation:rise linear infinite;}
+  @keyframes rise{
+    0%{transform:translateY(0) translateX(0); opacity:0;}
+    10%{opacity:0.6;} 90%{opacity:0.35;}
+    100%{transform:translateY(-115vh) translateX(var(--drift,10px)); opacity:0;}
+  }
+
+  header{position:relative; z-index:1; text-align:center; padding:2px 16px 6px;}
+  .top-bar{display:flex; justify-content:space-between; align-items:center; padding:0 6px;}
+  .sync-status{display:flex; align-items:center; gap:5px; font-size:11px; color:#3C7E90; font-weight:600;}
+  body.night .sync-status{color:#8FC2D4;}
+  .dot{width:7px; height:7px; border-radius:50%; background:#C7DCE2;}
+  .dot.on{background:#3FC66B; box-shadow:0 0 6px #3FC66B;}
+  .dot.off{background:#E0561A;}
+  .icon-btns{display:flex; gap:2px;}
+  .gear-btn{background:none; border:none; font-size:19px; padding:4px 7px; cursor:pointer; color:var(--deep); position:relative;}
+  body.night .gear-btn{color:#DCEEF4;}
+  .badge{position:absolute; top:0; right:0; background:var(--coral); color:#fff; font-size:9px; font-weight:800; border-radius:999px; min-width:14px; height:14px; line-height:14px; text-align:center; padding:0 3px;}
+
+  .mascot-wrap{width:132px; height:104px; margin:2px auto 0; position:relative;}
+  .mascot-wrap svg{width:100%; height:100%; animation:bob 3.4s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-7px) rotate(2deg);}}
+  .tailfin{animation:wag 0.65s ease-in-out infinite;}
+  @keyframes wag{0%,100%{transform:rotate(0deg);}50%{transform:rotate(-16deg);}}
+  .eyelid{animation:blink 4.5s ease-in-out infinite;}
+  @keyframes blink{0%,92%,100%{transform:scaleY(0);}94%,97%{transform:scaleY(1);}}
+
+  .speech{
+    position:absolute; top:-8px; left:50%; transform:translateX(-50%) scale(0);
+    background:#fff; color:var(--ink); font-size:12px; font-weight:700;
+    padding:7px 12px; border-radius:14px; max-width:220px; white-space:normal; text-align:center;
+    box-shadow:0 4px 10px rgba(15,59,73,0.18);
+    transition:transform 0.25s cubic-bezier(.34,1.56,.64,1);
+    pointer-events:none; z-index:2;
+  }
+  .speech.show{transform:translateX(-50%) scale(1);}
+  .speech:after{content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%); border-width:5px 5px 0; border-style:solid; border-color:#fff transparent transparent;}
+
+  h1{font-size:25px; margin:2px 0 0; font-weight:800; color:var(--deep); letter-spacing:0.5px;}
+  .subtitle{font-size:13px; color:#3C7E90; margin:2px 0 0; font-weight:500;}
+  .species-tag{display:inline-block; margin-top:4px; font-size:11px; font-weight:700; color:#fff; background:var(--goldfish-dark); padding:2px 10px; border-radius:999px;}
+
+  main{position:relative; z-index:1; flex:1; display:flex; flex-direction:column; padding:6px 16px 8px; max-width:520px; width:100%; margin:0 auto;}
+
+  .capture{background:var(--card); border-radius:22px; padding:12px; box-shadow:0 8px 22px rgba(15,59,73,0.14); border:1px solid var(--card-border); transition:background 0.3s,border-color 0.3s;}
+  textarea{width:100%; resize:none; border:none; outline:none; font-size:16.5px; line-height:1.45; font-family:inherit; color:var(--ink); min-height:52px; max-height:140px; background:transparent;}
+  textarea::placeholder{color:#9AB9C2;}
+
+  .chip-row{display:flex; gap:7px; margin-top:8px; flex-wrap:wrap;}
+  .chip{border:1.5px solid #D8ECF2; background:#F3FBFD; color:#3C7E90; font-size:12.5px; font-weight:600; padding:6px 12px; border-radius:999px; cursor:pointer; transition:transform 0.12s ease, background 0.15s ease; user-select:none; display:inline-flex; align-items:center; gap:4px;}
+  body.night .chip{background:#0F2A3D; border-color:#1E4A61; color:#8FC2D4;}
+  .chip-check{display:none; font-size:11px;}
+  .chip.active, body.night .chip.active{background:var(--goldfish); border-color:var(--goldfish-dark); color:#fff; animation:chipPop 0.22s ease;}
+  .chip.active .chip-check{display:inline;}
+  @keyframes chipPop{0%{transform:scale(0.85);}60%{transform:scale(1.08);}100%{transform:scale(1);}}
+  .chip:active{transform:scale(0.94);}
+
+  .send-row{display:flex; justify-content:space-between; align-items:center; margin-top:10px;}
+  .feed-counter{font-size:12px; color:#5C97A8; font-weight:700;}
+  body.night .feed-counter{color:#8FC2D4;}
+  .send-btn{background:linear-gradient(180deg,var(--goldfish),var(--goldfish-dark)); color:#fff; border:none; border-radius:999px; font-size:15px; font-weight:700; padding:11px 22px; display:flex; align-items:center; gap:7px; box-shadow:0 6px 14px rgba(224,86,26,0.35); transition:transform 0.12s ease;}
+  .send-btn:active{transform:scale(0.95);}
+  .send-btn:disabled{opacity:0.45; box-shadow:none;}
+
+  .pond-label{margin:18px 2px 8px; font-size:13px; font-weight:700; color:#2A6C81; display:flex; align-items:center; gap:6px;}
+  body.night .pond-label{color:#8FC2D4;}
+  .pond-count{background:#fff; color:var(--deep); font-size:11.5px; font-weight:800; border-radius:999px; padding:1px 8px;}
+  body.night .pond-count{background:#1E4A61; color:#DCEEF4;}
+
+  .list{display:flex; flex-direction:column; gap:10px; padding-bottom:10px;}
+
+  .note{background:var(--card); border-radius:18px; padding:12px 12px 12px 14px; display:flex; align-items:flex-start; gap:10px; box-shadow:0 4px 12px rgba(15,59,73,0.09); border:1px solid var(--card-border); position:relative; animation:pop-in 0.28s ease; touch-action:pan-y; transition:transform 0.2s ease, background 0.3s;}
+  @keyframes pop-in{from{opacity:0; transform:translateY(8px) scale(0.97);} to{opacity:1; transform:translateY(0) scale(1);}}
+  .note.done{animation:eaten 0.45s ease forwards;}
+  @keyframes eaten{to{opacity:0; transform:scale(0.4) translateX(40px);}}
+  .note.swipe-hint{background:#FFEDE3;}
+
+  .note-check{flex:0 0 auto; width:26px; height:26px; border-radius:50%; border:2px solid #CFE8EF; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; color:transparent; margin-top:1px;}
+  body.night .note-check{border-color:#1E4A61; background:#0F2A3D;}
+  .note-body{flex:1; min-width:0;}
+  .note-text{font-size:15px; line-height:1.4; word-wrap:break-word; white-space:pre-wrap;}
+  .note-meta{display:flex; gap:6px; align-items:center; margin-top:6px; flex-wrap:wrap;}
+  .tag-pill{font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px;}
+  .tag-now{background:#FFE3D3; color:#C1521A;}
+  .tag-tomorrow{background:#DFF1E5; color:#2C7A47;}
+  .tag-later{background:#E4EAF7; color:#3A50A0;}
+  .note-time{font-size:11px; color:#8FA9B1;}
+  .note-del{flex:0 0 auto; background:none; border:none; color:#C7DCE2; font-size:17px; padding:2px 4px; cursor:pointer;}
+  .note-del:active{color:var(--coral);}
+
+  .empty{text-align:center; color:#5C97A8; font-size:13.5px; padding:30px 20px; line-height:1.7;}
+  body.night .empty{color:#8FC2D4;}
+
+  .install-tip{margin-top:16px; background:rgba(255,255,255,0.75); border:1px dashed #9FD3E0; border-radius:16px; padding:10px 14px; font-size:12px; color:#2A6C81; line-height:1.6; display:flex; gap:8px; align-items:flex-start;}
+  .install-tip button{margin-left:auto; background:none; border:none; color:#7BAFBE; font-size:14px; cursor:pointer; flex:0 0 auto;}
+
+  .modal-overlay{position:fixed; inset:0; background:rgba(10,35,45,0.45); display:none; align-items:flex-end; justify-content:center; z-index:20;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:#fff; width:100%; max-width:480px; border-radius:24px 24px 0 0; padding:20px 20px calc(20px + var(--safe-bottom)); max-height:82vh; overflow-y:auto;}
+  body.night .modal{background:#0F2A3D; color:#DCEEF4;}
+  .modal h2{margin:0 0 4px; font-size:18px; color:var(--deep);}
+  body.night .modal h2{color:#DCEEF4;}
+  .modal p{font-size:12.5px; color:#5C7E88; line-height:1.6; margin:4px 0 12px;}
+  .modal textarea.cfg{width:100%; min-height:110px; border:1.5px solid #D8ECF2; border-radius:12px; padding:10px; font-size:12px; font-family:ui-monospace,Menlo,monospace; resize:vertical;}
+  .modal .row{display:flex; gap:8px; margin-top:12px;}
+  .modal button.primary{flex:1; background:linear-gradient(180deg,var(--goldfish),var(--goldfish-dark)); color:#fff; border:none; border-radius:12px; padding:11px; font-weight:700; font-size:14px;}
+  .modal button.secondary{background:#F0F7FA; color:#3C7E90; border:none; border-radius:12px; padding:11px 16px; font-weight:700; font-size:14px;}
+  .modal .close-x{float:right; background:none; border:none; font-size:18px; color:#9AB9C2;}
+  .modal .step{font-size:12px; color:#3C7E90; background:#F3FBFD; border-radius:10px; padding:8px 10px; margin-top:6px; line-height:1.6;}
+
+  .species-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:8px;}
+  .species-card{background:#F3FBFD; border:2px solid transparent; border-radius:16px; padding:8px 4px 10px; text-align:center; cursor:pointer;}
+  .species-card.active{border-color:var(--goldfish); background:#FFF1E6;}
+  .species-card svg{width:100%; height:44px;}
+  .species-card .sname{display:block; font-size:10.5px; font-weight:700; color:var(--ink); margin-top:2px; line-height:1.2;}
+
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; background:#F3FBFD; border-radius:14px; padding:10px 14px; margin-top:4px;}
+  body.night .toggle-row{background:#0F2A3D;}
+  .toggle-row span{font-size:13px; font-weight:700; color:var(--ink);}
+  body.night .toggle-row span{color:#DCEEF4;}
+  .switch{position:relative; width:42px; height:24px; flex:0 0 auto;}
+  .switch input{opacity:0; width:100%; height:100%; margin:0; cursor:pointer; position:absolute; z-index:1;}
+  .switch .track{position:absolute; inset:0; background:#D8ECF2; border-radius:999px; transition:background 0.2s;}
+  .switch .knob{position:absolute; top:3px; left:3px; width:18px; height:18px; background:#fff; border-radius:50%; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+  .switch input:checked + .track{background:var(--goldfish);}
+  .switch input:checked + .track + .knob{transform:translateX(18px);}
+
+  .tab-row{display:flex; gap:8px; margin-top:6px; margin-bottom:12px;}
+  .tab{flex:1; text-align:center; padding:9px; border-radius:12px; background:#F3FBFD; color:#3C7E90; font-size:13px; font-weight:700; cursor:pointer;}
+  body.night .tab{background:#0F2A3D; color:#8FC2D4;}
+  .tab.active{background:var(--goldfish); color:#fff;}
+  .archive-item{display:flex; align-items:flex-start; gap:10px; background:#F8FCFD; border:1px solid var(--card-border); border-radius:14px; padding:10px 12px; margin-bottom:8px;}
+  .archive-text{font-size:14px; line-height:1.4; flex:1; word-wrap:break-word;}
+  .archive-time{font-size:11px; color:#8FA9B1; margin-top:3px; display:block;}
+  .archive-actions{display:flex; flex-direction:column; gap:6px; flex:0 0 auto;}
+  .archive-actions button{border:none; border-radius:10px; font-size:11.5px; font-weight:700; padding:6px 9px; cursor:pointer;}
+  .btn-restore{background:#DFF1E5; color:#2C7A47;}
+  .btn-purge{background:#FBDCE0; color:#B8293F;}
+  .archive-empty{text-align:center; color:#8FA9B1; font-size:13px; padding:22px 10px;}
+</style>
+</head>
+<body>
+
+<div class="bubble-field" id="bubbleField"></div>
+<div id="starField"></div>
+
+<header>
+  <div class="top-bar">
+    <div class="sync-status" id="syncStatus"><span class="dot" id="syncDot"></span><span id="syncText">ยังไม่เชื่อมซิงค์</span></div>
+    <div class="icon-btns">
+      <button class="gear-btn" id="archiveBtn" title="คลังปลา">📂</button>
+      <button class="gear-btn" id="speciesBtn" title="เลือกสายพันธุ์">🎨</button>
+      <button class="gear-btn" id="gearBtn" title="ซิงค์ข้ามเครื่อง">⚙️</button>
+    </div>
+  </div>
+  <div class="mascot-wrap" id="mascotWrap">
+    <div class="speech" id="speech"></div>
+    <svg id="mascotSvg" viewBox="0 0 170 130" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+  <h1>ปลาทอง</h1>
+  <p class="subtitle">นึกออกแล้ว บอกปลาทองไว้ก่อนลืม</p>
+  <span class="species-tag" id="speciesTag"></span>
+</header>
+
+<main>
+  <div class="capture">
+    <textarea id="noteInput" placeholder="พิมพ์สิ่งที่นึกออก…" rows="2"></textarea>
+    <div class="chip-row" id="chipRow">
+      <div class="chip" data-tag="now"><span class="chip-check">✓</span>⚡ ตอนนี้เลย</div>
+      <div class="chip" data-tag="tomorrow"><span class="chip-check">✓</span>🌅 พรุ่งนี้</div>
+      <div class="chip" data-tag="later"><span class="chip-check">✓</span>🎐 ไว้ก่อน</div>
+    </div>
+    <div class="send-row">
+      <span class="feed-counter" id="feedCounter">🍚 ยังไม่เคยให้อาหารปลา</span>
+      <button class="send-btn" id="sendBtn" disabled><span>โยนลงบ่อ</span> 🐟</button>
+    </div>
+  </div>
+
+  <div class="pond-label"><span>🫧 บ่อความคิด</span><span class="pond-count" id="pondCount">0</span></div>
+
+  <div class="list" id="list"></div>
+  <div class="empty" id="emptyState">บ่อว่างๆ อยู่เลย<br>ปลาทองรอฟังไอเดียของคุณอยู่นะ 🐠</div>
+
+  <div class="install-tip" id="installTip">
+    <span>📌 เพิ่มปลาทองไว้หน้าจอโฮม: กด <b>แชร์</b> ที่แถบล่าง Safari แล้วเลือก <b>“เพิ่มลงในหน้าจอโฮม”</b></span>
+    <button id="closeTip">✕</button>
+  </div>
+</main>
+
+<!-- Firebase sync modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="close-x" id="modalClose">✕</button>
+    <h2>ซิงค์ข้ามเครื่อง</h2>
+    <p>วางค่า Firebase config (จาก Firebase Console) ที่นี่ — ใช้ config เดียวกันทุกเครื่องที่อยากให้บ่อเดียวกันซิงค์กัน</p>
+    <div class="step">1. console.firebase.google.com → สร้างโปรเจกต์ใหม่<br>2. Build → Realtime Database → Create Database<br>3. ตั้ง Rules ให้อ่าน/เขียนได้ (เฉพาะใช้ส่วนตัว)<br>4. Project settings → Your apps → เว็บ (&lt;/&gt;) → คัดลอก config object</div>
+    <textarea class="cfg" id="cfgInput" placeholder='{"apiKey":"...","databaseURL":"https://xxx.firebaseio.com", ...}'></textarea>
+    <div class="row">
+      <button class="secondary" id="disconnectBtn">เลิกซิงค์</button>
+      <button class="primary" id="connectBtn">เชื่อมต่อ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Species modal -->
+<div class="modal-overlay" id="speciesOverlay">
+  <div class="modal">
+    <button class="close-x" id="speciesClose">✕</button>
+    <h2>เลือกสายพันธุ์ปลาทอง</h2>
+    <p>แตะเพื่อเปลี่ยนหน้าตาปลาทองประจำแอปของคุณ</p>
+    <div class="toggle-row">
+      <span>🔄 สลับสายพันธุ์อัตโนมัติ</span>
+      <label class="switch"><input type="checkbox" id="autoswapToggle"><span class="track"></span><span class="knob"></span></label>
+    </div>
+    <div class="species-grid" id="speciesGrid"></div>
+  </div>
+</div>
+
+<!-- Archive / Trash modal -->
+<div class="modal-overlay" id="archiveOverlay">
+  <div class="modal">
+    <button class="close-x" id="archiveClose">✕</button>
+    <h2>คลังปลา</h2>
+    <p>เก็บอันที่ปลาทองกินไปแล้ว และอันที่ลบทิ้ง — กู้คืนได้ทุกเมื่อ</p>
+    <div class="tab-row">
+      <div class="tab active" id="tabDone">🍚 กินแล้ว</div>
+      <div class="tab" id="tabTrash">🗑 ถังขยะ</div>
+    </div>
+    <div id="archiveList"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'goldfish_notes_v1';
+  const TIP_KEY = 'goldfish_tip_dismissed';
+  const CFG_KEY = 'goldfish_firebase_cfg';
+  const FEED_KEY = 'goldfish_feed_count';
+  const SPECIES_KEY = 'goldfish_species';
+  const AUTOSWAP_KEY = 'goldfish_autoswap';
+
+  const $ = (s)=>document.querySelector(s);
+  const input = $('#noteInput');
+  const sendBtn = $('#sendBtn');
+  const list = $('#list');
+  const emptyState = $('#emptyState');
+  const pondCount = $('#pondCount');
+  const chipRow = $('#chipRow');
+  const installTip = $('#installTip');
+  const speech = $('#speech');
+  const feedCounter = $('#feedCounter');
+  const syncDot = $('#syncDot');
+  const syncText = $('#syncText');
+  const mascotSvg = $('#mascotSvg');
+  const speciesTag = $('#speciesTag');
+  const archiveBtn = $('#archiveBtn');
+
+  let activeTag = null;
+  let notes = [];
+  let feedCount = parseInt(localStorage.getItem(FEED_KEY) || '0', 10);
+  let fbRef = null;
+  let connected = false;
+  const instanceId = Math.random().toString(36).slice(2,10);
+
+  /* ---------------- Goldfish species gallery ---------------- */
+  const SPECIES = [
+    {id:'common', th:'ปลาทองธรรมดา', c1:'#FFCB6B', c2:'#FF9A2E', c3:'#E0561A', tail:'single', eyes:'normal', head:'none', pattern:'solid'},
+    {id:'comet', th:'โคเมท', c1:'#FFB199', c2:'#FF6A3D', c3:'#D8431A', tail:'long-single', eyes:'normal', head:'none', pattern:'white-patch'},
+    {id:'shubunkin', th:'ชูบุงกิง', c1:'#F3E3D0', c2:'#3B5BA6', c3:'#D8431A', tail:'single', eyes:'normal', head:'none', pattern:'calico'},
+    {id:'jikin', th:'จิกิน', c1:'#F0F0F0', c2:'#C9CFD6', c3:'#D8431A', tail:'peacock', eyes:'normal', head:'none', pattern:'red-cap'},
+    {id:'oranda', th:'ออรันดา', c1:'#FFCB6B', c2:'#FF9A2E', c3:'#E0561A', tail:'twin-long', eyes:'normal', head:'wen-large', pattern:'solid'},
+    {id:'ranchu', th:'รันชู', c1:'#FF9A2E', c2:'#E0561A', c3:'#C1451A', tail:'round-short', eyes:'normal', head:'wen-large', pattern:'solid', hunched:true},
+    {id:'lionhead', th:'หัวสิงโต', c1:'#FF9A2E', c2:'#E0561A', c3:'#C1451A', tail:'round-short', eyes:'normal', head:'wen-large', pattern:'solid'},
+    {id:'ryukin', th:'ริวกิ้น', c1:'#FFCB6B', c2:'#FF9A2E', c3:'#E0561A', tail:'twin-long', eyes:'normal', head:'none', pattern:'solid', hunched:true},
+    {id:'fantail', th:'หางพัด', c1:'#F5F0E6', c2:'#3FA9D6', c3:'#2B7BA8', tail:'fantail', eyes:'normal', head:'none', pattern:'red-cap'},
+    {id:'pearlscale', th:'เกล็ดมุก', c1:'#FFFFFF', c2:'#F3D9A8', c3:'#E0AF5A', tail:'round-short', eyes:'normal', head:'none', pattern:'pearl'},
+    {id:'hamanishiki', th:'ฮามะนิชิกิ', c1:'#F5F0E6', c2:'#B9D8E8', c3:'#7FAFC7', tail:'twin-long', eyes:'normal', head:'wen-small', pattern:'pearl'},
+    {id:'telescope', th:'ตาโปน', c1:'#FFCB6B', c2:'#FF9A2E', c3:'#E0561A', tail:'twin-long', eyes:'telescope', head:'none', pattern:'solid'},
+    {id:'demekin', th:'เดเมกิ้น', c1:'#FFFFFF', c2:'#E5443A', c3:'#B8291F', tail:'twin-long', eyes:'telescope', head:'none', pattern:'red-cap'},
+    {id:'dragoneye', th:'ตามังกร', c1:'#FFD84D', c2:'#E8A800', c3:'#B87A00', tail:'twin-long', eyes:'telescope', head:'none', pattern:'solid'},
+    {id:'celestial', th:'ตาเทวดา', c1:'#FF7A3D', c2:'#E0561A', c3:'#C1451A', tail:'round-short', eyes:'up', head:'none', pattern:'solid'},
+    {id:'bubbleeye', th:'ตาลูกโป่ง', c1:'#F7B7C9', c2:'#E88AA4', c3:'#C25E78', tail:'round-short', eyes:'bubble', head:'none', pattern:'solid'},
+    {id:'pompom', th:'ปอมปอน', c1:'#DCC9D8', c2:'#B79BC2', c3:'#8C6C9C', tail:'round-short', eyes:'normal', head:'pompom', pattern:'solid'},
+    {id:'phoenix', th:'ฟีนิกซ์', c1:'#E8E0D8', c2:'#B79B94', c3:'#8C6C63', tail:'veil-flow', eyes:'normal', head:'none', pattern:'calico'}
+  ];
+
+  function tailMarkup(type, gid){
+    switch(type){
+      case 'long-single':
+        return `<path d="M108 30 Q180 10 168 62 Q180 114 108 94 Q96 62 108 30Z" fill="url(#${gid}fin)" opacity="0.92"/>`;
+      case 'twin-long':
+        return `<path d="M108 24 Q182 -8 172 34 Q160 56 108 44Z" fill="url(#${gid}fin)" opacity="0.92"/>
+                <path d="M108 100 Q182 132 172 90 Q160 68 108 80Z" fill="url(#${gid}fin)" opacity="0.92"/>`;
+      case 'fantail':
+        return `<path d="M110 28 Q168 6 160 40 Q152 56 110 46Z" fill="url(#${gid}fin)"/>
+                <path d="M110 96 Q168 118 160 84 Q152 68 110 78Z" fill="url(#${gid}fin)"/>`;
+      case 'peacock':
+        return `<path d="M108 22 Q150 -4 156 20 Q150 40 112 40Z" fill="url(#${gid}fin)"/>
+                <path d="M108 44 Q166 40 168 62 Q166 62 108 58Z" fill="url(#${gid}fin)"/>
+                <path d="M108 80 Q166 84 168 62 Q166 62 108 66Z" fill="url(#${gid}fin)"/>
+                <path d="M108 102 Q150 128 156 104 Q150 84 112 84Z" fill="url(#${gid}fin)"/>`;
+      case 'round-short':
+        return `<path d="M112 40 Q150 30 146 62 Q150 94 112 84 Q106 62 112 40Z" fill="url(#${gid}fin)"/>`;
+      case 'veil-flow':
+        return `<path d="M106 18 Q188 -14 176 40 Q170 60 106 42Z" fill="url(#${gid}fin)" opacity="0.85"/>
+                <path d="M106 106 Q188 138 176 84 Q170 64 106 82Z" fill="url(#${gid}fin)" opacity="0.85"/>
+                <path d="M110 46 Q150 30 150 62 Q150 94 110 78Z" fill="url(#${gid}fin)" opacity="0.7"/>`;
+      case 'single':
+      default:
+        return `<path d="M112 42 Q160 30 156 62 Q160 94 112 82 Q104 62 112 42Z" fill="url(#${gid}fin)"/>`;
+    }
+  }
+
+  function eyeMarkup(type, skin){
+    switch(type){
+      case 'telescope':
+        return `<circle cx="130" cy="52" r="10.5" fill="#fff"/>
+                <circle cx="132" cy="52" r="7.5" fill="#22303A"/>
+                <circle cx="134.5" cy="48.5" r="2.4" fill="#fff"/>`;
+      case 'bubble':
+        return `<circle cx="118" cy="62" r="17" fill="#fff" opacity="0.32"/>
+                <circle cx="118" cy="62" r="17" fill="none" stroke="#fff" stroke-width="1.2" opacity="0.65"/>
+                <circle cx="120" cy="60" r="6.5" fill="#22303A"/>
+                <circle cx="122.5" cy="57.5" r="2" fill="#fff"/>`;
+      case 'up':
+        return `<circle cx="108" cy="40" r="8.5" fill="#fff"/>
+                <circle cx="107" cy="37" r="6" fill="#22303A"/>
+                <circle cx="104.5" cy="34" r="1.8" fill="#fff"/>`;
+      case 'normal':
+      default:
+        return `<circle cx="118" cy="55" r="10.5" fill="#fff"/>
+                <circle cx="120" cy="56" r="8" fill="#22303A"/>
+                <circle cx="123" cy="52.5" r="2.8" fill="#fff"/>
+                <circle cx="117" cy="59" r="1.4" fill="#fff" opacity="0.8"/>
+                <path class="eyelid" d="M107.5 55 Q118 46 128.5 55 Q118 50 107.5 55Z" fill="${skin}" style="transform-origin:118px 55px;"/>`;
+    }
+  }
+
+  function headMarkup(type, c2){
+    switch(type){
+      case 'wen-small':
+        return `<circle cx="96" cy="30" r="9" fill="${c2}" opacity="0.85"/><circle cx="88" cy="26" r="7" fill="${c2}" opacity="0.75"/>`;
+      case 'wen-large':
+        return `<g opacity="0.92">
+          <circle cx="100" cy="34" r="15" fill="${c2}"/>
+          <circle cx="113" cy="30" r="11" fill="${c2}"/>
+          <circle cx="90" cy="27" r="10" fill="${c2}"/>
+          <circle cx="106" cy="46" r="9" fill="${c2}"/>
+          <circle cx="120" cy="42" r="7" fill="${c2}"/>
+        </g>`;
+      case 'pompom':
+        return `<circle cx="140" cy="58" r="8" fill="#fff" opacity="0.92"/>
+                <circle cx="147" cy="63" r="6" fill="#fff" opacity="0.85"/>
+                <circle cx="137" cy="67" r="5.5" fill="#fff" opacity="0.8"/>`;
+      case 'none':
+      default: return '';
+    }
+  }
+
+  function patternMarkup(type, c3){
+    switch(type){
+      case 'white-patch':
+        return `<ellipse cx="58" cy="55" rx="20" ry="14" fill="#fff" opacity="0.55"/>`;
+      case 'calico':
+        return `<ellipse cx="55" cy="45" rx="12" ry="8" fill="#2B2B2B" opacity="0.42"/>
+                <ellipse cx="92" cy="76" rx="10" ry="7" fill="${c3}" opacity="0.55"/>
+                <ellipse cx="70" cy="60" rx="14" ry="9" fill="#fff" opacity="0.45"/>`;
+      case 'red-cap':
+        return `<ellipse cx="93" cy="34" rx="15" ry="10" fill="${c3}" opacity="0.75"/>`;
+      case 'pearl':
+        return `<g fill="#fff" opacity="0.55">
+          <circle cx="52" cy="48" r="3.4"/><circle cx="66" cy="42" r="3.4"/><circle cx="80" cy="46" r="3.4"/>
+          <circle cx="60" cy="62" r="3.4"/><circle cx="76" cy="64" r="3.4"/><circle cx="92" cy="58" r="3.4"/>
+          <circle cx="50" cy="76" r="3.4"/><circle cx="68" cy="80" r="3.4"/><circle cx="86" cy="76" r="3.4"/>
+        </g>`;
+      case 'solid':
+      default:
+        return `<g opacity="0.22" fill="none" stroke="${c3}" stroke-width="1.3">
+          <path d="M55 40 Q62 46 55 52"/><path d="M70 36 Q78 43 70 50"/><path d="M85 34 Q93 41 85 48"/>
+          <path d="M63 55 Q71 61 63 67"/><path d="M78 53 Q86 60 78 66"/><path d="M93 55 Q101 61 93 67"/>
+        </g>`;
+    }
+  }
+
+  function fishMarkup(cfg){
+    const gid = 'g_'+cfg.id+'_';
+    const bodyRy = cfg.hunched ? 44 : 40;
+    const bodyCy = cfg.hunched ? 58 : 63;
+    return `
+      <defs>
+        <radialGradient id="${gid}body" cx="38%" cy="32%" r="75%">
+          <stop offset="0%" stop-color="#fff" stop-opacity="0.55"/>
+          <stop offset="30%" stop-color="${cfg.c1}"/>
+          <stop offset="100%" stop-color="${cfg.c3}"/>
+        </radialGradient>
+        <linearGradient id="${gid}fin" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${cfg.c2}"/>
+          <stop offset="100%" stop-color="${cfg.c3}"/>
+        </linearGradient>
+      </defs>
+      <g class="tailfin" style="transform-origin:118px 62px;">${tailMarkup(cfg.tail, gid)}</g>
+      <path d="M28 36 Q -8 63 28 90 Q 40 78 40 63 Q 40 48 28 36Z" fill="url(#${gid}fin)"/>
+      <ellipse cx="20" cy="24" rx="14" ry="9" fill="url(#${gid}fin)" opacity="0.85" transform="rotate(-18 20 24)"/>
+      <ellipse cx="82" cy="${bodyCy}" rx="60" ry="${bodyRy}" fill="url(#${gid}body)"/>
+      ${patternMarkup(cfg.pattern, cfg.c3)}
+      ${headMarkup(cfg.head, cfg.c2)}
+      <ellipse cx="60" cy="${bodyCy-15}" rx="26" ry="9" fill="${cfg.c3}" opacity="0.15"/>
+      ${eyeMarkup(cfg.eyes, cfg.c1)}
+      <path d="M140 62 Q152 66 143 72 Q149 66 140 62Z" fill="${cfg.c3}"/>
+      <ellipse cx="145" cy="65" rx="3.4" ry="2.6" fill="#22303A" opacity="0.85"/>
+    `;
+  }
+
+  function getSpecies(id){ return SPECIES.find(s=>s.id===id) || SPECIES[0]; }
+
+  function applySpecies(id, announce){
+    const cfg = getSpecies(id);
+    mascotSvg.innerHTML = fishMarkup(cfg);
+    speciesTag.textContent = cfg.th;
+    localStorage.setItem(SPECIES_KEY, id);
+    if(announce) say('เปลี่ยนร่างเป็น ' + cfg.th + ' แล้ว! 🐠');
+  }
+
+  function renderSpeciesGrid(){
+    const grid = $('#speciesGrid');
+    grid.innerHTML = '';
+    const current = localStorage.getItem(SPECIES_KEY) || 'common';
+    SPECIES.forEach(cfg=>{
+      const card = document.createElement('div');
+      card.className = 'species-card' + (cfg.id===current ? ' active' : '');
+      card.dataset.id = cfg.id;
+      card.innerHTML = `<svg viewBox="0 0 170 130">${fishMarkup(cfg)}</svg><span class="sname">${cfg.th}</span>`;
+      card.addEventListener('click', ()=>{
+        applySpecies(cfg.id, false);
+        [...grid.children].forEach(c=>c.classList.remove('active'));
+        card.classList.add('active');
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  /* ---------------- notes / core app ---------------- */
+  const phrases = ['จำไว้แล้วนะ! 🫧','ปลาทองเก็บไว้ให้แล้ว','โอเค บันทึกละ!','ฝากปลาทองดูแลนะ 🐠','จดครบแล้วจ้า','อย่าลืมมาดูอีกทีนะ'];
+  const idlePhrases = ['ว่ายวนไปวนมา 🐠','มีอะไรอยากจดไหม?','บ่อนี้เงียบจัง','ปลาทองรออยู่นะ'];
+  const tagWeight = {now:5, tomorrow:3, later:1};
+
+  function say(text){
+    speech.textContent = text;
+    speech.classList.add('show');
+    clearTimeout(say._t);
+    say._t = setTimeout(()=>speech.classList.remove('show'), 2600);
+  }
+
+  function pickWeightedNote(){
+    const pool = notes.filter(n=>!n.done && !n.deleted);
+    if(pool.length === 0) return null;
+    const weighted = [];
+    pool.forEach(n=>{
+      const w = tagWeight[n.tag] || 1;
+      for(let i=0;i<w;i++) weighted.push(n);
+    });
+    return weighted[Math.floor(Math.random()*weighted.length)];
+  }
+
+  function showReminder(){
+    const n = pickWeightedNote();
+    if(!n){ say(idlePhrases[Math.floor(Math.random()*idlePhrases.length)]); return; }
+    let text = n.text.length > 30 ? n.text.slice(0,30)+'…' : n.text;
+    const icon = n.tag === 'now' ? '🔴' : n.tag === 'tomorrow' ? '🟡' : '🔔';
+    say(icon + ' อย่าลืม: ' + text);
+  }
+
+  function updateNight(){
+    const h = new Date().getHours();
+    document.body.classList.toggle('night', h >= 19 || h < 6);
+  }
+  updateNight();
+  setInterval(updateNight, 5*60*1000);
+
+  function load(){ try{ notes = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }catch(e){ notes = []; } }
+  function saveLocal(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(notes)); }catch(e){} }
+  function saveFeed(){ localStorage.setItem(FEED_KEY, String(feedCount)); }
+  function syncNote(n){ if(connected) fbRef.child(n.id).set(n); }
+
+  function purgeOldTrash(){
+    const cutoff = Date.now() - 30*24*60*60*1000;
+    const before = notes.length;
+    notes = notes.filter(n=> !(n.deleted && n.deletedAt && n.deletedAt < cutoff));
+    if(notes.length !== before) saveLocal();
+  }
+
+  function timeAgo(ts){
+    const diff = Math.floor((Date.now()-ts)/1000);
+    if(diff < 60) return 'เมื่อสักครู่';
+    if(diff < 3600) return Math.floor(diff/60)+' นาทีที่แล้ว';
+    if(diff < 86400) return Math.floor(diff/3600)+' ชม.ที่แล้ว';
+    return new Date(ts).toLocaleDateString('th-TH', {day:'numeric', month:'short'});
+  }
+
+  const tagLabel = {now:'⚡ ตอนนี้เลย', tomorrow:'🌅 พรุ่งนี้', later:'🎐 ไว้ก่อน'};
+  const tagClass = {now:'tag-now', tomorrow:'tag-tomorrow', later:'tag-later'};
+
+  function renderFeedCounter(){
+    feedCounter.textContent = feedCount === 0 ? '🍚 ยังไม่เคยให้อาหารปลา' : '🍚 ให้อาหารปลาทองแล้ว ' + feedCount + ' ครั้ง';
+  }
+
+  function updateArchiveBadge(){
+    const c = notes.filter(n=>n.done || n.deleted).length;
+    let badge = archiveBtn.querySelector('.badge');
+    if(c > 0){
+      if(!badge){ badge = document.createElement('span'); badge.className='badge'; archiveBtn.appendChild(badge); }
+      badge.textContent = c > 99 ? '99+' : c;
+    }else if(badge){ badge.remove(); }
+  }
+
+  function render(){
+    list.innerHTML = '';
+    const active = notes.filter(n=>!n.done && !n.deleted).sort((a,b)=>b.createdAt-a.createdAt);
+    pondCount.textContent = active.length;
+    emptyState.style.display = active.length ? 'none' : 'block';
+    active.forEach(n=>{
+      const el = document.createElement('div');
+      el.className = 'note';
+      el.dataset.id = n.id;
+      el.innerHTML = `
+        <div class="note-check" data-action="done">✓</div>
+        <div class="note-body">
+          <div class="note-text"></div>
+          <div class="note-meta">
+            ${n.tag ? `<span class="tag-pill ${tagClass[n.tag]}">${tagLabel[n.tag]}</span>` : ''}
+            <span class="note-time">${timeAgo(n.createdAt)}</span>
+          </div>
+        </div>
+        <button class="note-del" data-action="del">🗑</button>
+      `;
+      el.querySelector('.note-text').textContent = n.text;
+      attachSwipe(el);
+      list.appendChild(el);
+    });
+    updateArchiveBadge();
+  }
+
+  function attachSwipe(el){
+    let startX = 0, dx = 0, dragging = false;
+    el.addEventListener('touchstart', (e)=>{ startX = e.touches[0].clientX; dragging = true; }, {passive:true});
+    el.addEventListener('touchmove', (e)=>{
+      if(!dragging) return;
+      dx = e.touches[0].clientX - startX;
+      if(dx < 0){ el.style.transform = `translateX(${Math.max(dx,-90)}px)`; el.classList.toggle('swipe-hint', dx < -50); }
+    }, {passive:true});
+    el.addEventListener('touchend', ()=>{
+      dragging = false;
+      if(dx < -60){ trashNote(el.dataset.id, el); }
+      else{ el.style.transform=''; el.classList.remove('swipe-hint'); }
+      dx = 0;
+    });
+  }
+
+  function trashNote(id, el){
+    const n = notes.find(x=>x.id===id);
+    if(!n) return;
+    if(el) el.classList.add('done');
+    setTimeout(()=>{
+      n.deleted = true; n.deletedAt = Date.now(); n.updatedAt = Date.now();
+      saveLocal(); render(); syncNote(n);
+    }, 380);
+  }
+
+  function markDone(id, el){
+    const n = notes.find(x=>x.id===id);
+    if(!n) return;
+    el.classList.add('done');
+    feedCount++; saveFeed(); renderFeedCounter();
+    if(feedCount === 10) say('ปลาทองอิ่มไป 10 มื้อแล้ว! 🎉');
+    else if(feedCount === 50) say('50 มื้อแล้วนะ ปลาทองตัวใหญ่ขึ้นเยอะ 🐠✨');
+    else say(['เก่งมาก! เสร็จอีกงาน 🎊','ฟินสุดๆ 🫧','ปลาทองแอบดีใจ'][Math.floor(Math.random()*3)]);
+    setTimeout(()=>{
+      n.done = true; n.updatedAt = Date.now();
+      saveLocal(); render();
+      syncNote(n);
+    }, 380);
+  }
+
+  function restoreNote(id){
+    const n = notes.find(x=>x.id===id);
+    if(!n) return;
+    n.done = false; n.deleted = false; n.deletedAt = null; n.updatedAt = Date.now();
+    saveLocal(); render(); renderArchive();
+    syncNote(n);
+    say('กู้คืนแล้ว! กลับลงบ่อนะ 🫧');
+  }
+
+  function purgeNote(id){
+    notes = notes.filter(x=>x.id!==id);
+    saveLocal(); renderArchive(); updateArchiveBadge();
+    if(connected) fbRef.child(id).remove();
+  }
+
+  function addNote(){
+    const text = input.value.trim();
+    if(!text) return;
+    const n = { id: Date.now()+'-'+Math.random().toString(36).slice(2,7), text, tag: activeTag, createdAt: Date.now(), updatedAt: Date.now(), done: false, deleted:false, by: instanceId };
+    notes.push(n);
+    saveLocal();
+    input.value = '';
+    activeTag = null;
+    [...chipRow.children].forEach(c=>c.classList.remove('active'));
+    sendBtn.disabled = true;
+    render();
+    spawnBubbleBurst();
+    say(phrases[Math.floor(Math.random()*phrases.length)]);
+    syncNote(n);
+  }
+
+  input.addEventListener('input', ()=>{ sendBtn.disabled = input.value.trim().length === 0; });
+  input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); addNote(); } });
+  sendBtn.addEventListener('click', addNote);
+
+  chipRow.addEventListener('click', (e)=>{
+    const chip = e.target.closest('.chip'); if(!chip) return;
+    const tag = chip.dataset.tag;
+    if(activeTag === tag){ activeTag = null; chip.classList.remove('active'); }
+    else{ activeTag = tag; [...chipRow.children].forEach(c=>c.classList.remove('active')); chip.classList.add('active'); }
+  });
+
+  list.addEventListener('click', (e)=>{
+    const noteEl = e.target.closest('.note'); if(!noteEl) return;
+    const id = noteEl.dataset.id;
+    const action = e.target.closest('[data-action]'); if(!action) return;
+    if(action.dataset.action === 'done') markDone(id, noteEl);
+    else if(action.dataset.action === 'del') trashNote(id, noteEl);
+  });
+
+  if(localStorage.getItem(TIP_KEY) === '1') installTip.style.display = 'none';
+  $('#closeTip').addEventListener('click', ()=>{ installTip.style.display = 'none'; localStorage.setItem(TIP_KEY, '1'); });
+
+  /* idle weighted reminder bubble */
+  setInterval(()=>{ if(Math.random() < 0.45) showReminder(); }, 22000);
+
+  const bubbleField = $('#bubbleField');
+  function spawnBubble(){
+    const b = document.createElement('div');
+    b.className = 'bg-bubble';
+    const size = 6 + Math.random()*22;
+    b.style.width = size+'px'; b.style.height = size+'px';
+    b.style.left = (Math.random()*100)+'%';
+    b.style.setProperty('--drift', (Math.random()*60-30)+'px');
+    b.style.animationDuration = (6+Math.random()*6)+'s';
+    bubbleField.appendChild(b);
+    setTimeout(()=>b.remove(), 13000);
+  }
+  setInterval(spawnBubble, 900);
+  for(let i=0;i<6;i++) setTimeout(spawnBubble, i*300);
+  function spawnBubbleBurst(){ for(let i=0;i<8;i++) setTimeout(spawnBubble, i*40); }
+
+  const starField = $('#starField');
+  for(let i=0;i<18;i++){
+    const s = document.createElement('div');
+    s.className='star';
+    s.style.width=s.style.height=(1+Math.random()*2)+'px';
+    s.style.left=(Math.random()*100)+'%';
+    s.style.top=(Math.random()*35)+'%';
+    s.style.animationDelay=(Math.random()*3)+'s';
+    starField.appendChild(s);
+  }
+
+  /* species UI + autoswap */
+  const speciesBtn = $('#speciesBtn');
+  const speciesOverlay = $('#speciesOverlay');
+  const autoswapToggle = $('#autoswapToggle');
+  speciesBtn.addEventListener('click', ()=>{
+    renderSpeciesGrid();
+    autoswapToggle.checked = localStorage.getItem(AUTOSWAP_KEY) === '1';
+    speciesOverlay.classList.add('show');
+  });
+  $('#speciesClose').addEventListener('click', ()=>speciesOverlay.classList.remove('show'));
+  speciesOverlay.addEventListener('click', (e)=>{ if(e.target===speciesOverlay) speciesOverlay.classList.remove('show'); });
+  autoswapToggle.addEventListener('change', ()=>{
+    localStorage.setItem(AUTOSWAP_KEY, autoswapToggle.checked ? '1' : '0');
+  });
+
+  let autoswapCursor = SPECIES.findIndex(s=>s.id === (localStorage.getItem(SPECIES_KEY) || 'common'));
+  setInterval(()=>{
+    if(localStorage.getItem(AUTOSWAP_KEY) !== '1') return;
+    autoswapCursor = (autoswapCursor + 1) % SPECIES.length;
+    applySpecies(SPECIES[autoswapCursor].id, false);
+    showReminder();
+  }, 45000);
+
+  /* archive / trash modal */
+  const archiveOverlay = $('#archiveOverlay');
+  const archiveList = $('#archiveList');
+  const tabDone = $('#tabDone');
+  const tabTrash = $('#tabTrash');
+  let archiveTab = 'done';
+
+  function renderArchive(){
+    archiveList.innerHTML = '';
+    tabDone.classList.toggle('active', archiveTab==='done');
+    tabTrash.classList.toggle('active', archiveTab==='trash');
+    const items = archiveTab==='done'
+      ? notes.filter(n=>n.done && !n.deleted).sort((a,b)=>b.updatedAt-a.updatedAt)
+      : notes.filter(n=>n.deleted).sort((a,b)=>b.deletedAt-a.deletedAt);
+    if(items.length === 0){
+      archiveList.innerHTML = `<div class="archive-empty">${archiveTab==='done' ? 'ยังไม่มีอันที่กินแล้วเลย 🐟' : 'ถังขยะว่างอยู่ 🗑'}</div>`;
+      return;
+    }
+    items.forEach(n=>{
+      const row = document.createElement('div');
+      row.className = 'archive-item';
+      const timeLabel = archiveTab==='done' ? timeAgo(n.updatedAt) : timeAgo(n.deletedAt) + ' (ลบถาวรอัตโนมัติใน 30 วัน)';
+      row.innerHTML = `
+        <div>
+          <div class="archive-text"></div>
+          <span class="archive-time">${timeLabel}</span>
+        </div>
+        <div class="archive-actions">
+          <button class="btn-restore" data-id="${n.id}" data-act="restore">↩️ กู้คืน</button>
+          ${archiveTab==='trash' ? `<button class="btn-purge" data-id="${n.id}" data-act="purge">ลบถาวร</button>` : ''}
+        </div>
+      `;
+      row.querySelector('.archive-text').textContent = n.text;
+      archiveList.appendChild(row);
+    });
+  }
+
+  archiveList.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-act]'); if(!btn) return;
+    if(btn.dataset.act === 'restore') restoreNote(btn.dataset.id);
+    else if(btn.dataset.act === 'purge') purgeNote(btn.dataset.id);
+  });
+
+  tabDone.addEventListener('click', ()=>{ archiveTab='done'; renderArchive(); });
+  tabTrash.addEventListener('click', ()=>{ archiveTab='trash'; renderArchive(); });
+
+  archiveBtn.addEventListener('click', ()=>{ archiveTab='done'; renderArchive(); archiveOverlay.classList.add('show'); });
+  $('#archiveClose').addEventListener('click', ()=>archiveOverlay.classList.remove('show'));
+  archiveOverlay.addEventListener('click', (e)=>{ if(e.target===archiveOverlay) archiveOverlay.classList.remove('show'); });
+
+  /* ---------- Firebase sync ---------- */
+  const gearBtn = $('#gearBtn');
+  const modalOverlay = $('#modalOverlay');
+  const cfgInput = $('#cfgInput');
+  gearBtn.addEventListener('click', ()=>{
+    const saved = localStorage.getItem(CFG_KEY);
+    if(saved) cfgInput.value = saved;
+    modalOverlay.classList.add('show');
+  });
+  $('#modalClose').addEventListener('click', ()=>modalOverlay.classList.remove('show'));
+  modalOverlay.addEventListener('click', (e)=>{ if(e.target===modalOverlay) modalOverlay.classList.remove('show'); });
+
+  $('#disconnectBtn').addEventListener('click', ()=>{
+    localStorage.removeItem(CFG_KEY);
+    connected = false; fbRef = null;
+    syncDot.className='dot'; syncText.textContent='ยังไม่เชื่อมซิงค์';
+    modalOverlay.classList.remove('show');
+  });
+
+  $('#connectBtn').addEventListener('click', ()=>{
+    const raw = cfgInput.value.trim();
+    if(!raw) return;
+    try{
+      JSON.parse(raw);
+      localStorage.setItem(CFG_KEY, raw);
+      modalOverlay.classList.remove('show');
+      initFirebase(raw);
+    }catch(e){
+      syncText.textContent = 'config ไม่ถูกต้อง';
+      syncDot.className = 'dot off';
+    }
+  });
+
+  function loadScript(src){
+    return new Promise((resolve,reject)=>{
+      const s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function initFirebase(cfgRaw){
+    try{
+      syncText.textContent = 'กำลังเชื่อมต่อ...';
+      syncDot.className = 'dot';
+      if(!window.firebase){
+        await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+        await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js');
+      }
+      const cfg = JSON.parse(cfgRaw);
+      if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(cfg);
+      fbRef = firebase.database().ref('goldfish_notes');
+
+      fbRef.on('value', (snap)=>{
+        const val = snap.val() || {};
+        notes = Object.values(val);
+        saveLocal();
+        render();
+      }, ()=>{
+        connected = false; syncDot.className = 'dot off'; syncText.textContent = 'เชื่อมต่อไม่สำเร็จ';
+      });
+
+      notes.forEach(n=>{ fbRef.child(n.id).once('value').then(s=>{ if(!s.exists()) fbRef.child(n.id).set(n); }); });
+
+      connected = true;
+      syncDot.className = 'dot on';
+      syncText.textContent = 'ซิงค์อยู่';
+    }catch(err){
+      connected = false; syncDot.className = 'dot off'; syncText.textContent = 'เชื่อมต่อไม่สำเร็จ';
+    }
+  }
+
+  load();
+  purgeOldTrash();
+  render();
+  renderFeedCounter();
+  applySpecies(localStorage.getItem(SPECIES_KEY) || 'common', false);
+  const savedCfg = localStorage.getItem(CFG_KEY);
+  if(savedCfg) initFirebase(savedCfg);
+})();
+</script>
+</body>
+</html>
